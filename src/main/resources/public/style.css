@@ -1,0 +1,25 @@
+body {
+    font-family:'Franklin Gothic Medium';
+    margin: 50px;
+}
+
+form {
+    width: 300px;
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+}
+
+button {
+    margin-top: 20px;
+    padding:10px 15px;
+}
