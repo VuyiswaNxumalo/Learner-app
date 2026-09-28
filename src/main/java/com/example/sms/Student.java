@@ -15,6 +15,16 @@ public class Student {
         this.feeBalance = 0.0;
     }
 
+    // Used when rebuilding a saved student from the database
+    public Student(int id, String studentId, String name, int age, String email, double feeBalance) {
+        this.id = id;
+        this.studentId = studentId;
+        this.name = name;
+        this.age = age;
+        this.email = email;
+        this.feeBalance = feeBalance;
+    }
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
