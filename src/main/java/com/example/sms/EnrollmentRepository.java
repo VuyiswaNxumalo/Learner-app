@@ -4,6 +4,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EnrollmentRepository {
 
@@ -23,10 +26,7 @@ public class EnrollmentRepository {
         }
     }
 
-    /**
-     * Tries to enroll a student in a course.
-     * Returns true if it worked, false if they were already enrolled.
-     */
+    
     public boolean enroll(int studentId, int courseId) {
         String sql = "INSERT INTO enrollments(student_id, course_id) VALUES(?, ?)";
         try (Connection conn = Db.get();
@@ -42,5 +42,33 @@ public class EnrollmentRepository {
             }
             throw new RuntimeException(e);
         }
+    }
+
+    public List<Course> findCoursesForStudent(int studentId) {
+        String sql = """
+                SELECT c.id, c.code, c.title, c.fee
+                FROM courses c
+                JOIN enrollments e ON e.course_id = c.id
+                WHERE e.student_id = ?
+                ORDER BY c.id
+                """;
+        List<Course> courses = new ArrayList<>();
+        try (Connection conn = Db.get();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, studentId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Course c = new Course(
+                            rs.getString("code"),
+                            rs.getString("title"),
+                            rs.getDouble("fee"));
+                    c.setId(rs.getInt("id"));
+                    courses.add(c);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+    }
+        return courses;
     }
 }
