@@ -43,7 +43,8 @@
 
     <build>
         <plugins>
-            <!-- Run with: mvn exec:java -->
+            <!-- Web app:      mvn compile exec:java -->
+            <!-- Console app:  mvn compile exec:java@sms-console -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -51,6 +52,14 @@
                 <configuration>
                     <mainClass>com.example.Main</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>sms-console</id>
+                        <configuration>
+                            <mainClass>com.example.sms.ConsoleApp</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Build runnable fat JAR with: mvn package -->
