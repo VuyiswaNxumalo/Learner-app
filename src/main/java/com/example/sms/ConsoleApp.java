@@ -61,8 +61,13 @@ public class ConsoleApp {
         double fee = readDouble();
 
         Course course = new Course(code, title, fee);
-        courseRepo.save(course);
-        System.out.println("Course added with ID " + course.getId() + "\n");
+        Course saved = courseRepo.save(course);
+
+        if (saved == null) {
+            System.out.println("A course with code " + code + " already exists.\n");
+        } else {
+            System.out.println("Course added with ID " + saved.getId() + "\n");
+        }
     }
 
     private static void listCourses() {

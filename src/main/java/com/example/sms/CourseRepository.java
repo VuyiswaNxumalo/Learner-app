@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
 
 public class CourseRepository {
 
@@ -25,27 +26,32 @@ public class CourseRepository {
         }
     }
 
-    public Course save(Course course) {
-        String sql = "INSERT INTO courses(code, title, fee) VALUES(?, ?, ?)";
-        try (Connection conn = Db.get();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, course.getCode());
-            stmt.setString(2, course.getTitle());
-            stmt.setDouble(3, course.getFee());
-            stmt.executeUpdate();
+   public Course save(Course course) {
+    String sql = "INSERT INTO courses(code, title, fee) VALUES(?, ?, ?)";
+    try (Connection conn = Db.get();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, course.getCode());
+        stmt.setString(2, course.getTitle());
+        stmt.setDouble(3, course.getFee());
+        stmt.executeUpdate();
 
-            // ask SQLite which row number it just created
-            try (Statement idStmt = conn.createStatement();
-                 ResultSet rs = idStmt.executeQuery("SELECT last_insert_rowid()")) {
-                if (rs.next()) {
-                    course.setId(rs.getInt(1));
-                }
+        try (Statement idStmt = conn.createStatement();
+             ResultSet rs = idStmt.executeQuery("SELECT last_insert_rowid()")) {
+            if (rs.next()) {
+                course.setId(rs.getInt(1));
             }
-            return course;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
+        return course;
+
+    } catch (SQLException e) {
+        if (e.getMessage() != null && e.getMessage().contains("UNIQUE")) {
+            return null; // a course with this code already exists
+        }
+        throw new RuntimeException(e); // some other, real problem
+    } catch (Exception e) {
+        throw new RuntimeException(e);
     }
+}
 
     public List<Course> findAll() {
         String sql = "SELECT id, code, title, fee FROM courses ORDER BY id";
