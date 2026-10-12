@@ -27,9 +27,9 @@ public class ConsoleApp {
             switch (choice) {
                 case "1" -> addCourse();
                 case "2" -> listCourses();
-                case "3", "4", "5", "6", "7" -> System.out.println("Coming soon.\n");
+                case "3" -> registerStudent();
+                case "4", "5", "6", "7" -> System.out.println("Coming soon.\n");
                 case "0" -> running = false;
-                default -> System.out.println("Invalid option, try again.\n");
             }
         }
         System.out.println("Goodbye!");
@@ -84,6 +84,22 @@ public class ConsoleApp {
         System.out.println();
     }
 
+     private static void registerStudent() {
+            System.out.print("Student name: ");
+            String name = scanner.nextLine().trim();
+
+            System.out.print("Student age: ");
+            int age = readInt();
+
+            System.out.print("Student email: ");
+            String email = scanner.nextLine().trim();
+
+            Student student = new Student(name, age, email);
+            studentRepo.save(student);
+
+            System.out.println("Student registered! Their ID is " + student.getStudentId() + "\n");
+        }
+
     // Keeps asking until the user types a valid number
     private static double readDouble() {
         while (true) {
@@ -93,5 +109,16 @@ public class ConsoleApp {
                 System.out.print("Please enter a valid number: ");
             }
         }
+
     }
+
+    private static int readInt() {
+            while (true) {
+                try {
+                    return Integer.parseInt(scanner.nextLine().trim());
+                } catch (NumberFormatException e) {
+                    System.out.print("Please enter a whole number: ");
+                }
+            }
+        }
 }
