@@ -28,7 +28,8 @@ public class ConsoleApp {
                 case "1" -> addCourse();
                 case "2" -> listCourses();
                 case "3" -> registerStudent();
-                case "4", "5", "6", "7" -> System.out.println("Coming soon.\n");
+                case "7" -> listStudents();
+                case "4", "5", "6" -> System.out.println("Coming soon.\n");
                 case "0" -> running = false;
             }
         }
@@ -80,6 +81,20 @@ public class ConsoleApp {
         for (Course c : courses) {
             System.out.printf("  [%d] %s - %s ($%.2f)%n",
                     c.getId(), c.getCode(), c.getTitle(), c.getFee());
+        }
+        System.out.println();
+    }
+
+    private static void listStudents() {
+        List<Student> students = studentRepo.findAll();
+        if (students.isEmpty()) {
+            System.out.println("No students yet. Register one with option 3.\n");
+            return;
+        }
+        System.out.println("\nAll students:");
+        for (Student s : students) {
+            System.out.printf("  %s | %s | age %d | balance $%.2f%n",
+                    s.getStudentId(), s.getName(), s.getAge(), s.getFeeBalance());
         }
         System.out.println();
     }
