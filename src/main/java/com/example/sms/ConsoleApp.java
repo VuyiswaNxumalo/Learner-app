@@ -28,8 +28,9 @@ public class ConsoleApp {
                 case "1" -> addCourse();
                 case "2" -> listCourses();
                 case "3" -> registerStudent();
+                case "4" -> enrollStudent();
                 case "7" -> listStudents();
-                case "4", "5", "6" -> System.out.println("Coming soon.\n");
+                case "5", "6" -> System.out.println("Coming soon.\n");
                 case "0" -> running = false;
             }
         }
@@ -113,6 +114,24 @@ public class ConsoleApp {
             studentRepo.save(student);
 
             System.out.println("Student registered! Their ID is " + student.getStudentId() + "\n");
+        }
+
+        private static void enrollStudent() {
+            System.out.print("Student ID (e.g. STU00001): ");
+            String studentId = scanner.nextLine().trim();
+
+            listCourses();   // show the courses so the user can pick an ID
+
+            System.out.print("Course ID to enroll in: ");
+            int courseId = readInt();
+
+            try {
+                Student student = enrollmentService.enroll(studentId, courseId);
+                System.out.printf("Enrolled %s. New fee balance: $%.2f%n%n",
+                        student.getName(), student.getFeeBalance());
+            } catch (IllegalArgumentException e) {
+                System.out.println(e.getMessage() + "\n");
+            }
         }
 
     // Keeps asking until the user types a valid number
