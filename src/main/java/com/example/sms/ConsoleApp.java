@@ -29,9 +29,9 @@ public class ConsoleApp {
                 case "2" -> listCourses();
                 case "3" -> registerStudent();
                 case "4" -> enrollStudent();
-                case "7" -> listStudents();
                 case "5" -> viewStudentStatus();
-                case "6" -> System.out.println("Coming soon.\n");
+                case "6" -> makePayment();
+                case "7" -> listStudents();
                 case "0" -> running = false;
             }
         }
@@ -164,6 +164,40 @@ public class ConsoleApp {
         }
         System.out.println("=========================================\n");
     }
+
+    private static void makePayment() {
+    System.out.print("Student ID (e.g. STU00001): ");
+    String studentId = scanner.nextLine().trim();
+
+    Student student = studentRepo.findByStudentId(studentId);
+    if (student == null) {
+        System.out.println("No student found with ID " + studentId + "\n");
+        return;
+    }
+
+    System.out.printf("%s owes $%.2f%n", student.getName(), student.getFeeBalance());
+    if (student.getFeeBalance() == 0) {
+        System.out.println("Nothing to pay, the balance is already zero.\n");
+        return;
+    }
+
+    System.out.print("Payment amount: ");
+    double amount = readDouble();
+
+    if (amount <= 0) {
+        System.out.println("Payment must be more than zero.\n");
+        return;
+    }
+    if (amount > student.getFeeBalance()) {
+        System.out.println("That's more than the balance owed. Payment not recorded.\n");
+        return;
+    }
+
+    student.makePayment(amount);                                          // step 1: change it in memory
+    studentRepo.updateFeeBalance(student.getId(), student.getFeeBalance()); // step 2: save it
+
+    System.out.printf("Payment recorded. New balance: $%.2f%n%n", student.getFeeBalance());
+}
 
     // Keeps asking until the user types a valid number
     private static double readDouble() {
