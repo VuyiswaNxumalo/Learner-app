@@ -30,7 +30,8 @@ public class ConsoleApp {
                 case "3" -> registerStudent();
                 case "4" -> enrollStudent();
                 case "7" -> listStudents();
-                case "5", "6" -> System.out.println("Coming soon.\n");
+                case "5" -> viewStudentStatus();
+                case "6" -> System.out.println("Coming soon.\n");
                 case "0" -> running = false;
             }
         }
@@ -100,21 +101,21 @@ public class ConsoleApp {
         System.out.println();
     }
 
-     private static void registerStudent() {
-            System.out.print("Student name: ");
-            String name = scanner.nextLine().trim();
+    private static void registerStudent() {
+        System.out.print("Student name: ");
+        String name = scanner.nextLine().trim();
 
-            System.out.print("Student age: ");
-            int age = readInt();
+        System.out.print("Student age: ");
+        int age = readInt();
 
-            System.out.print("Student email: ");
-            String email = scanner.nextLine().trim();
+        System.out.print("Student email: ");
+        String email = scanner.nextLine().trim();
 
-            Student student = new Student(name, age, email);
-            studentRepo.save(student);
+        Student student = new Student(name, age, email);
+        studentRepo.save(student);
 
-            System.out.println("Student registered! Their ID is " + student.getStudentId() + "\n");
-        }
+        System.out.println("Student registered! Their ID is " + student.getStudentId() + "\n");
+    }
 
         private static void enrollStudent() {
             System.out.print("Student ID (e.g. STU00001): ");
@@ -133,6 +134,36 @@ public class ConsoleApp {
                 System.out.println(e.getMessage() + "\n");
             }
         }
+
+
+    private static void viewStudentStatus() {
+        System.out.print("Student ID (e.g. STU00001): ");
+        String studentId = scanner.nextLine().trim();
+
+        Student student = studentRepo.findByStudentId(studentId);
+        if (student == null) {
+            System.out.println("No student found with ID " + studentId + "\n");
+            return;
+        }
+
+        List<Course> courses = enrollmentRepo.findCoursesForStudent(student.getId());
+
+        System.out.println("\n=========================================");
+        System.out.println("Student ID  : " + student.getStudentId());
+        System.out.println("Name        : " + student.getName());
+        System.out.println("Age         : " + student.getAge());
+        System.out.println("Email       : " + student.getEmail());
+        System.out.printf ("Fee balance : $%.2f%n", student.getFeeBalance());
+        System.out.println("Courses     :");
+        if (courses.isEmpty()) {
+            System.out.println("   (not enrolled in any course yet)");
+        } else {
+            for (Course c : courses) {
+                System.out.println("   - " + c.getCode() + ": " + c.getTitle());
+            }
+        }
+        System.out.println("=========================================\n");
+    }
 
     // Keeps asking until the user types a valid number
     private static double readDouble() {
