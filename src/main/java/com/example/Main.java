@@ -1,4 +1,8 @@
 package com.example;
+import com.example.sms.CourseRepository;
+import com.example.sms.EnrollmentRepository;
+import com.example.sms.SmsApi;
+import com.example.sms.StudentRepository;
 import  io.javalin.Javalin;
 
 public class Main {
@@ -18,6 +22,12 @@ public class Main {
             ctx.redirect("/");
 
         });
+
+        // Student Management System: make sure its tables exist, then add its API routes
+        new StudentRepository().createTable();
+        new CourseRepository().createTable();
+        new EnrollmentRepository().createTable();
+        new SmsApi().register(app);
 
         app.start(5000);
     }
