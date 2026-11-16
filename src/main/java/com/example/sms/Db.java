@@ -10,6 +10,6 @@ public final class Db {
     private Db() {}
 
     public static Connection get() throws SQLException {
-        return DriverManager.getConnection(URL);
+        return DriverManager.getConnection(System.getProperty("sms.db.url", URL));
     }
 }

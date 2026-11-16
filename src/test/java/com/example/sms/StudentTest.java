@@ -45,5 +45,5 @@ class StudentTest {
 
         assertEquals(0.0, s.getFeeBalance(), 0.001);
     }
-    
+   
 }
