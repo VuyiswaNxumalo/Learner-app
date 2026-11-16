@@ -101,6 +101,30 @@ public class StudentRepository {
         return students;
     }
 
+    public List<Student> search(String text) {
+        String sql = """
+                SELECT id, student_id, name, age, email, fee_balance
+                FROM students
+                WHERE name LIKE ? OR student_id LIKE ?
+                ORDER BY id
+                """;
+        String pattern = "%" + text.trim() + "%";   // % means "anything", so this matches the text anywhere
+        List<Student> students = new ArrayList<>();
+        try (Connection conn = Db.get();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, pattern);
+            stmt.setString(2, pattern);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    students.add(mapRow(rs));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return students;
+    }
+
     public void updateFeeBalance(int id, double newBalance) {
         String sql = "UPDATE students SET fee_balance = ? WHERE id = ?";
         try (Connection conn = Db.get();

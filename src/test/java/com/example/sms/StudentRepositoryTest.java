@@ -68,4 +68,15 @@ class StudentRepositoryTest {
         Student reloaded = repo.findByStudentId(saved.getStudentId());
         assertEquals(250.00, reloaded.getFeeBalance(), 0.001);
     }
+
+    @Test
+    void searchFindsByNameOrStudentIdIgnoringCase() {
+        repo.save(new Student("John Smith", 20, "john@example.com"));   // STU00001
+        repo.save(new Student("Jane Doe", 19, "jane@example.com"));     // STU00002
+
+        assertEquals(1, repo.search("john").size());      // part of a name, any case
+        assertEquals(1, repo.search("STU00002").size());  // a full student ID
+        assertEquals(1, repo.search("00002").size());     // part of a student ID
+        assertEquals(0, repo.search("zzz").size());       // no match
+    }
 }
