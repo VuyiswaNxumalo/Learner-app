@@ -1,5 +1,6 @@
 package com.example.sms;
 
+import java.util.List;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import java.util.Map;
@@ -8,10 +9,14 @@ public class SmsApi {
 
     private final CourseRepository courseRepo = new CourseRepository();
     private final StudentRepository studentRepo = new StudentRepository();
+    private final EnrollmentRepository enrollmentRepo = new EnrollmentRepository();
 
     // The shapes of the JSON a client sends. Boxed types (Double, Integer) so a missing value is null, not 0.
     record NewCourse(String code, String title, Double fee) {}
     record NewStudent(String name, Integer age, String email) {}
+    // What the status page needs: the student's details plus their courses
+    record StudentStatus(String studentId, String name, int age, String email,
+                        double feeBalance, List<Course> courses) {}
 
     public void register(Javalin app) {
         // Turn exceptions into status codes. The most specific handler wins.
@@ -24,6 +29,20 @@ public class SmsApi {
 
         app.get("/api/students", this::listStudents);
         app.post("/api/students", this::registerStudent);
+        app.get("/api/students/{id}", this::studentStatus);
+    }
+
+    private void studentStatus(Context ctx) {
+        String studentId = ctx.pathParam("id");   // the STU00001 part of the address
+        Student student = studentRepo.findByStudentId(studentId);
+        if (student == null) {
+            throw new NotFoundException("No student found with ID " + studentId);
+        }
+
+        List<Course> courses = enrollmentRepo.findCoursesForStudent(student.getId());
+
+        ctx.json(new StudentStatus(student.getStudentId(), student.getName(), student.getAge(),
+                student.getEmail(), student.getFeeBalance(), courses));
     }
 
     private void addCourse(Context ctx) {
