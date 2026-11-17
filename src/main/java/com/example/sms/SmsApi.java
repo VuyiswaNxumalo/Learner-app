@@ -46,7 +46,7 @@ public class SmsApi {
     }
 
     private void addCourse(Context ctx) {
-        NewCourse body = ctx.bodyAsClass(NewCourse.class);
+        NewCourse body = readBody(ctx, NewCourse.class);
 
         if (body.code() == null || body.code().isBlank()) {
             throw new IllegalArgumentException("code is required");
@@ -79,7 +79,7 @@ public class SmsApi {
     }
 
     private void registerStudent(Context ctx) {
-        NewStudent body = ctx.bodyAsClass(NewStudent.class);
+        NewStudent body = readBody(ctx, NewStudent.class);
 
         if (body.name() == null || body.name().isBlank()) {
             throw new IllegalArgumentException("name is required");
@@ -101,5 +101,19 @@ public class SmsApi {
 
     private static void error(Context ctx, int status, String message) {
         ctx.status(status).json(Map.of("error", message));
+    }
+
+    // Reads the JSON body into a Java object; any problem becomes a 400 instead of a 500
+    private <T> T readBody(Context ctx, Class<T> type) {
+        T body;
+        try {
+            body = ctx.bodyAsClass(type);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("request body must be valid JSON");
+        }
+        if (body == null) {
+            throw new IllegalArgumentException("request body is required");
+        }
+        return body;
     }
 }
