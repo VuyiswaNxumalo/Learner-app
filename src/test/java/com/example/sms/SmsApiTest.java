@@ -62,6 +62,21 @@ class SmsApiTest {
     private static final String JOHN = "{\"name\":\"John Smith\",\"age\":20,\"email\":\"john@example.com\"}";
     private static final String JANE = "{\"name\":\"Jane Doe\",\"age\":19,\"email\":\"jane@example.com\"}";
 
+    private static String enrollBody(int courseId) {
+        return "{\"courseId\":" + courseId + "}";
+    }
+
+    private static String payBody(double amount) {
+        return "{\"amount\":" + amount + "}";
+    }
+
+    // a student who owes $150 (registered and enrolled in CS101)
+    private void johnOwes150() throws Exception {
+        post("/api/courses", CS101);
+        post("/api/students", JOHN);
+        post("/api/students/STU00001/enrollments", enrollBody(1));
+    }
+
     // ---- courses ----
 
     @Test
@@ -91,6 +106,15 @@ class SmsApiTest {
         assertEquals(400, response.statusCode());
         assertEquals("fee is required", json.readTree(response.body()).get("error").asText());
     }
+
+    @Test
+    void malformedJsonReturns400() throws Exception {
+        HttpResponse<String> response = post("/api/courses", "hello");
+
+        assertEquals(400, response.statusCode());
+        assertEquals("request body must be valid JSON", json.readTree(response.body()).get("error").asText());
+    }
+
     // ---- students ----
 
     @Test
@@ -141,11 +165,121 @@ class SmsApiTest {
         assertEquals(404, response.statusCode());
     }
 
+    // ---- enrolling ----
+
     @Test
-    void malformedJsonReturns400() throws Exception {
-        HttpResponse<String> response = post("/api/courses", "hello");
+    void enrollingChargesTheFeeAndShowsTheCourse() throws Exception {
+        post("/api/courses", CS101);        // id 1, fee 150
+        post("/api/students", JOHN);        // STU00001
+
+        HttpResponse<String> response = post("/api/students/STU00001/enrollments", enrollBody(1));
+
+        assertEquals(201, response.statusCode());
+        JsonNode body = json.readTree(response.body());
+        assertEquals(150.0, body.get("feeBalance").asDouble(), 0.001);
+        assertEquals(1, body.get("courses").size());
+        assertEquals("CS101", body.get("courses").get(0).get("code").asText());
+    }
+
+    @Test
+    void duplicateEnrollmentReturns409AndIsChargedOnce() throws Exception {
+        johnOwes150();
+
+        HttpResponse<String> second = post("/api/students/STU00001/enrollments", enrollBody(1));
+
+        assertEquals(409, second.statusCode());
+        assertTrue(json.readTree(second.body()).get("error").asText().contains("already enrolled"));
+
+        JsonNode status = json.readTree(get("/api/students/STU00001").body());
+        assertEquals(150.0, status.get("feeBalance").asDouble(), 0.001);   // one fee, not two
+    }
+
+    @Test
+    void enrollingAnUnknownStudentReturns404() throws Exception {
+        post("/api/courses", CS101);
+
+        HttpResponse<String> response = post("/api/students/STU99999/enrollments", enrollBody(1));
+
+        assertEquals(404, response.statusCode());
+    }
+
+    @Test
+    void enrollingInAnUnknownCourseReturns404AndChargesNothing() throws Exception {
+        post("/api/students", JOHN);
+
+        HttpResponse<String> response = post("/api/students/STU00001/enrollments", enrollBody(999));
+
+        assertEquals(404, response.statusCode());
+        JsonNode status = json.readTree(get("/api/students/STU00001").body());
+        assertEquals(0.0, status.get("feeBalance").asDouble(), 0.001);
+    }
+
+    @Test
+    void enrollmentWithoutACourseIdReturns400() throws Exception {
+        post("/api/students", JOHN);
+
+        HttpResponse<String> response = post("/api/students/STU00001/enrollments", "{}");
 
         assertEquals(400, response.statusCode());
-        assertEquals("request body must be valid JSON", json.readTree(response.body()).get("error").asText());
+        assertEquals("courseId is required", json.readTree(response.body()).get("error").asText());
+    }
+
+    // ---- payments ----
+
+    @Test
+    void partialPaymentReducesTheBalance() throws Exception {
+        johnOwes150();
+
+        HttpResponse<String> response = post("/api/students/STU00001/payments", payBody(50));
+
+        assertEquals(200, response.statusCode());
+        assertEquals(100.0, json.readTree(response.body()).get("feeBalance").asDouble(), 0.001);
+    }
+
+    @Test
+    void payingMoreThanOwedReturns409AndBalanceIsUnchanged() throws Exception {
+        johnOwes150();
+
+        HttpResponse<String> response = post("/api/students/STU00001/payments", payBody(500));
+
+        assertEquals(409, response.statusCode());
+        JsonNode status = json.readTree(get("/api/students/STU00001").body());
+        assertEquals(150.0, status.get("feeBalance").asDouble(), 0.001);
+    }
+
+    @Test
+    void zeroPaymentReturns400() throws Exception {
+        johnOwes150();
+
+        HttpResponse<String> response = post("/api/students/STU00001/payments", payBody(0));
+
+        assertEquals(400, response.statusCode());
+        assertEquals("Payment must be more than zero.", json.readTree(response.body()).get("error").asText());
+    }
+
+    @Test
+    void payingWhenNothingIsOwedReturns409() throws Exception {
+        post("/api/students", JOHN);    // registered, never enrolled, owes nothing
+
+        HttpResponse<String> response = post("/api/students/STU00001/payments", payBody(10));
+
+        assertEquals(409, response.statusCode());
+    }
+
+    @Test
+    void paymentForAnUnknownStudentReturns404() throws Exception {
+        HttpResponse<String> response = post("/api/students/STU99999/payments", payBody(10));
+
+        assertEquals(404, response.statusCode());
+    }
+
+    @Test
+    void paymentWithoutAnAmountReturns400() throws Exception {
+        post("/api/students", JOHN);
+
+        HttpResponse<String> response = post("/api/students/STU00001/payments", "{}");
+
+        assertEquals(400, response.statusCode());
+        assertEquals("amount is required", json.readTree(response.body()).get("error").asText());
     }
 }

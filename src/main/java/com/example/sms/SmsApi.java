@@ -1,8 +1,8 @@
 package com.example.sms;
 
-import java.util.List;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import java.util.List;
 import java.util.Map;
 
 public class SmsApi {
@@ -10,13 +10,18 @@ public class SmsApi {
     private final CourseRepository courseRepo = new CourseRepository();
     private final StudentRepository studentRepo = new StudentRepository();
     private final EnrollmentRepository enrollmentRepo = new EnrollmentRepository();
+    private final EnrollmentService enrollmentService = new EnrollmentService();
+    private final PaymentService paymentService = new PaymentService();
 
     // The shapes of the JSON a client sends. Boxed types (Double, Integer) so a missing value is null, not 0.
     record NewCourse(String code, String title, Double fee) {}
     record NewStudent(String name, Integer age, String email) {}
+    record NewEnrollment(Integer courseId) {}
+    record NewPayment(Double amount) {}
+
     // What the status page needs: the student's details plus their courses
     record StudentStatus(String studentId, String name, int age, String email,
-                        double feeBalance, List<Course> courses) {}
+                         double feeBalance, List<Course> courses) {}
 
     public void register(Javalin app) {
         // Turn exceptions into status codes. The most specific handler wins.
@@ -30,20 +35,11 @@ public class SmsApi {
         app.get("/api/students", this::listStudents);
         app.post("/api/students", this::registerStudent);
         app.get("/api/students/{id}", this::studentStatus);
+        app.post("/api/students/{id}/enrollments", this::enrollStudent);
+        app.post("/api/students/{id}/payments", this::recordPayment);
     }
 
-    private void studentStatus(Context ctx) {
-        String studentId = ctx.pathParam("id");   // the STU00001 part of the address
-        Student student = studentRepo.findByStudentId(studentId);
-        if (student == null) {
-            throw new NotFoundException("No student found with ID " + studentId);
-        }
-
-        List<Course> courses = enrollmentRepo.findCoursesForStudent(student.getId());
-
-        ctx.json(new StudentStatus(student.getStudentId(), student.getName(), student.getAge(),
-                student.getEmail(), student.getFeeBalance(), courses));
-    }
+    // ---- courses ----
 
     private void addCourse(Context ctx) {
         NewCourse body = readBody(ctx, NewCourse.class);
@@ -68,6 +64,8 @@ public class SmsApi {
         }
         ctx.status(201).json(saved);
     }
+
+    // ---- students ----
 
     private void listStudents(Context ctx) {
         String search = ctx.queryParam("search");   // the part after ?search= in the address
@@ -99,8 +97,43 @@ public class SmsApi {
         ctx.status(201).json(saved);                // includes the generated studentId
     }
 
-    private static void error(Context ctx, int status, String message) {
-        ctx.status(status).json(Map.of("error", message));
+    private void studentStatus(Context ctx) {
+        String studentId = ctx.pathParam("id");     // the STU00001 part of the address
+        Student student = studentRepo.findByStudentId(studentId);
+        if (student == null) {
+            throw new NotFoundException("No student found with ID " + studentId);
+        }
+        ctx.json(statusOf(student));
+    }
+
+    // ---- enrolling and payments (the rules live in the services) ----
+
+    private void enrollStudent(Context ctx) {
+        NewEnrollment body = readBody(ctx, NewEnrollment.class);
+        if (body.courseId() == null) {
+            throw new IllegalArgumentException("courseId is required");
+        }
+
+        Student student = enrollmentService.enroll(ctx.pathParam("id"), body.courseId());
+        ctx.status(201).json(statusOf(student));
+    }
+
+    private void recordPayment(Context ctx) {
+        NewPayment body = readBody(ctx, NewPayment.class);
+        if (body.amount() == null) {
+            throw new IllegalArgumentException("amount is required");
+        }
+
+        Student student = paymentService.pay(ctx.pathParam("id"), body.amount());
+        ctx.json(statusOf(student));
+    }
+
+    // ---- helpers ----
+
+    private StudentStatus statusOf(Student student) {
+        List<Course> courses = enrollmentRepo.findCoursesForStudent(student.getId());
+        return new StudentStatus(student.getStudentId(), student.getName(), student.getAge(),
+                student.getEmail(), student.getFeeBalance(), courses);
     }
 
     // Reads the JSON body into a Java object; any problem becomes a 400 instead of a 500
@@ -115,5 +148,9 @@ public class SmsApi {
             throw new IllegalArgumentException("request body is required");
         }
         return body;
+    }
+
+    private static void error(Context ctx, int status, String message) {
+        ctx.status(status).json(Map.of("error", message));
     }
 }
