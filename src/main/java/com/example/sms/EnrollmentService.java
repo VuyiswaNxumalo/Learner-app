@@ -13,17 +13,17 @@ public class EnrollmentService {
     public Student enroll(String studentId, int courseId) {
         Student student = studentRepo.findByStudentId(studentId);
         if (student == null) {
-            throw new IllegalArgumentException("No student found with ID " + studentId);
+            throw new NotFoundException("No student found with ID " + studentId);
         }
 
         Course course = courseRepo.findById(courseId);
         if (course == null) {
-            throw new IllegalArgumentException("No course found with ID " + courseId);
+            throw new NotFoundException("No course found with ID " + courseId);
         }
 
         boolean enrolled = enrollmentRepo.enroll(student.getId(), course.getId());
         if (!enrolled) {
-            throw new IllegalArgumentException(
+            throw new ConflictException(
                     student.getName() + " is already enrolled in " + course.getCode());
         }
 

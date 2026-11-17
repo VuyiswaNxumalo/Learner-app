@@ -11,16 +11,16 @@ public class PaymentService {
     public Student pay(String studentId, double amount) {
         Student student = studentRepo.findByStudentId(studentId);
         if (student == null) {
-            throw new IllegalArgumentException("No student found with ID " + studentId);
+            throw new NotFoundException("No student found with ID " + studentId);
         }
         if (amount <= 0) {
             throw new IllegalArgumentException("Payment must be more than zero.");
         }
         if (student.getFeeBalance() == 0) {
-            throw new IllegalArgumentException(student.getName() + " has no balance to pay.");
+            throw new ConflictException(student.getName() + " has no balance to pay.");
         }
         if (amount > student.getFeeBalance()) {
-            throw new IllegalArgumentException(
+            throw new ConflictException(
                     String.format("That's more than the balance owed ($%.2f). Payment not recorded.",
                             student.getFeeBalance()));
         }
